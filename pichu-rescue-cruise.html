@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pichu Rescue Cruise ⚡</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&family=Nunito:wght@400;600;700&display=swap');
+
+  :root {
+    --sky: #87CEEB;
+    --ocean: #1a6b8a;
+    --ocean-light: #2a8fb5;
+    --ocean-dark: #0d4a63;
+    --sand: #f5d88e;
+    --yellow: #FFE135;
+    --pichu-yellow: #FFD700;
+    --pink: #ffb3c6;
+    --red: #ff6b6b;
+    --green: #56c66b;
+    --purple: #b39ddb;
+    --white: #fffdf5;
+    --dark: #1a2a3a;
+    --wave1: #2196a8;
+    --wave2: #1a7a8a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--sky);
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* SKY + OCEAN BACKGROUND */
+  #bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(180deg, #b8e4f9 0%, #87CEEB 35%, #5bb8d4 50%, #1a6b8a 50%, #0d4a63 100%);
+  }
+
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 50px;
+    opacity: 0.85;
+    animation: floatCloud linear infinite;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+  }
+
+  @keyframes floatCloud {
+    from { transform: translateX(-200px); }
+    to { transform: translateX(calc(100vw + 200px)); }
+  }
+
+  .wave-layer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200%;
+    height: 60px;
+    animation: waveAnim linear infinite;
+    opacity: 0.4;
+  }
+  @keyframes waveAnim {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* MAIN LAYOUT */
+  #game {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 10px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* HEADER */
+  #header {
+    background: rgba(255,255,255,0.92);
+    border-radius: 20px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(0,80,120,0.2);
+    border: 3px solid var(--ocean-light);
+  }
+
+  #header h1 {
+    font-family: 'Baloo 2', cursive;
+    font-size: 1.4em;
+    font-weight: 800;
+    color: var(--ocean-dark);
+    line-height: 1;
+  }
+
+  #header h1 span { color: var(--red); }
+
+  .stat-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .pill {
+    background: var(--ocean);
+    color: white;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.8em;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .pill.gold { background: #d4a00a; }
+  .pill.green { background: var(--green); }
+
+  /* SCREEN PANELS */
+  .screen {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .screen.active { display: flex; }
+
+  .panel {
+    background: rgba(255,255,255,0.93);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0,80,120,0.15);
+    border: 2px solid rgba(255,255,255,0.8);
+  }
+
+  .panel h2 {
+    font-family: 'Baloo 2', cursive;
+    font-size: 1.2em;
+    color: var(--ocean-dark);
+    margin-bottom: 10px;
+  }
+
+  /* OCEAN ROUTE */
+  #route-track {
+    position: relative;
+    height: 100px;
+    background: linear-gradient(90deg, var(--ocean-light), var(--ocean-dark));
+    border-radius: 14px;
+    overflow: hidden;
+    border: 3px solid var(--ocean);
+  }
+
+  .route-waves {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px, transparent 30px,
+      rgba(255,255,255,0.07) 30px, rgba(255,255,255,0.07) 60px
+    );
+  }
+
+  #ship-container {
+    position: absolute;
+    bottom: 10px;
+    transition: left 0.8s cubic-bezier(.4,0,.2,1);
+    font-size: 2.5em;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    animation: shipBob 2s ease-in-out infinite;
+  }
+  @keyframes shipBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  .route-stop {
+    position: absolute;
+    bottom: 8px;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: 1.4em;
+  }
+  .route-stop .stop-label {
+    font-size: 0.45em;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    margin-top: 2px;
+    display: block;
+  }
+  .route-stop.found { animation: bounce 0.4s ease; }
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.4); }
+  }
+
+  /* PICHU ROSTER */
+  #pichu-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pichu-card {
+    background: linear-gradient(135deg, #fffbe7, #fff3c4);
+    border: 2px solid var(--sand);
+    border-radius: 14px;
+    padding: 10px 12px;
+    min-width: 100px;
+    flex: 1;
+    max-width: 150px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+  .pichu-card:hover { transform: scale(1.04); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .pichu-card.selected { border-color: var(--ocean); background: linear-gradient(135deg, #e3f4ff, #c8e8ff); }
+  .pichu-card .pichu-emoji { font-size: 2em; }
+  .pichu-card .pichu-name { font-weight: 700; font-size: 0.8em; color: var(--dark); }
+  .pichu-card .pichu-hp { font-size: 0.7em; color: #777; }
+
+  .stat-bar {
+    height: 5px;
+    background: #eee;
+    border-radius: 10px;
+    margin-top: 3px;
+    overflow: hidden;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.4s ease;
+  }
+  .hp-bar { background: var(--red); }
+  .happy-bar { background: #ffb347; }
+  .strong-bar { background: var(--green); }
+
+  /* ACTIVITY BUTTONS */
+  .activity-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .act-btn {
+    background: white;
+    border: 3px solid transparent;
+    border-radius: 16px;
+    padding: 12px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    font-family: 'Nunito', sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+  .act-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+  .act-btn:active { transform: scale(0.96); }
+  .act-btn.locked { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.5); }
+  .act-btn .act-icon { font-size: 2em; display: block; }
+  .act-btn .act-name { font-weight: 700; font-size: 0.78em; color: var(--dark); display: block; margin-top: 3px; }
+  .act-btn .act-cost { font-size: 0.68em; color: #888; }
+  .act-btn .lock-badge {
+    position: absolute;
+    top: 4px; right: 4px;
+    font-size: 0.8em;
+  }
+  .act-btn.heal { border-color: var(--red); background: #fff0f0; }
+  .act-btn.entertain { border-color: #ffb347; background: #fff8f0; }
+  .act-btn.gym { border-color: var(--green); background: #f0fff4; }
+  .act-btn.feed { border-color: #f9c; background: #fff0f8; }
+  .act-btn.swim { border-color: #87CEEB; background: #f0fbff; }
+  .act-btn.spa { border-color: var(--purple); background: #f5f0ff; }
+
+  /* BIG BUTTONS */
+  .btn {
+    font-family: 'Baloo 2', cursive;
+    font-weight: 700;
+    font-size: 1.1em;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--ocean); color: white; width: 100%; }
+  .btn-gold { background: #e6aa00; color: white; }
+  .btn-green { background: var(--green); color: white; }
+  .btn-red { background: var(--red); color: white; }
+
+  /* UPGRADE SHOP */
+  .upgrade-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .upgrade-card {
+    border: 3px solid #ddd;
+    border-radius: 14px;
+    padding: 12px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .upgrade-card:hover:not(.owned):not(.cant-afford) { border-color: var(--ocean); transform: translateY(-2px); }
+  .upgrade-card.owned { border-color: var(--green); background: #f0fff4; opacity: 0.75; cursor: default; }
+  .upgrade-card.cant-afford { opacity: 0.5; cursor: not-allowed; }
+  .upgrade-card .upg-icon { font-size: 2em; }
+  .upgrade-card .upg-name { font-weight: 700; font-size: 0.85em; color: var(--dark); margin: 4px 0 2px; }
+  .upgrade-card .upg-desc { font-size: 0.7em; color: #777; }
+  .upgrade-card .upg-cost { font-weight: 700; font-size: 0.82em; color: #d4a00a; margin-top: 4px; }
+
+  /* FEEDBACK TOAST */
+  #toast {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--dark);
+    color: white;
+    padding: 10px 22px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 1em;
+    z-index: 100;
+    pointer-events: none;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* SPLASH / FLOAT EFFECT */
+  .float-up {
+    position: fixed;
+    pointer-events: none;
+    font-weight: 800;
+    font-size: 1.1em;
+    animation: floatUp 1.2s ease forwards;
+    z-index: 200;
+    font-family: 'Baloo 2', cursive;
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-60px) scale(1.3); }
+  }
+
+  /* SUMMARY */
+  #summary-pichus {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    font-size: 2.2em;
+    padding: 10px;
+  }
+
+  .tab-row {
+    display: flex;
+    gap: 6px;
+  }
+  .tab {
+    font-family: 'Baloo 2', cursive;
+    font-weight: 700;
+    font-size: 0.9em;
+    padding: 7px 14px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    background: rgba(255,255,255,0.7);
+    color: var(--ocean-dark);
+    transition: all 0.2s;
+  }
+  .tab.active { background: var(--ocean); color: white; border-color: var(--ocean-dark); }
+
+  #msg-box {
+    background: #f0f8ff;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 0.88em;
+    color: var(--ocean-dark);
+    border: 2px solid #cce4f7;
+    min-height: 36px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div id="bg">
+  <!-- clouds injected by JS -->
+</div>
+
+<div id="toast"></div>
+
+<div id="game">
+  <div id="header">
+    <h1>⚡ Pichu<br><span>Rescue</span> Cruise</h1>
+    <div class="stat-pills">
+      <div class="pill gold">⭐ <span id="stat-stars">0</span></div>
+      <div class="pill green">💛 <span id="stat-rescued">0</span> rescued</div>
+      <div class="pill">🚢 Cruise <span id="stat-cruise">1</span></div>
+    </div>
+  </div>
+
+  <!-- ============ CRUISE SCREEN ============ -->
+  <div id="screen-cruise" class="screen active">
+    <div class="panel">
+      <h2>🌊 Setting Sail!</h2>
+      <div id="msg-box">Your crew is ready. Hit sail to begin the rescue route!</div>
+      <div id="route-track" style="margin-top:12px">
+        <div class="route-waves"></div>
+        <div id="ship-container">🚢</div>
+        <!-- stops injected by JS -->
+      </div>
+    </div>
+    <div class="panel">
+      <h2>📋 Rescue Log</h2>
+      <div id="rescue-log" style="font-size:0.85em; color:#555; line-height:1.8;">No Pichus found yet this cruise.</div>
+    </div>
+    <button class="btn btn-primary" id="btn-sail">⛵ Set Sail!</button>
+  </div>
+
+  <!-- ============ CARE SCREEN ============ -->
+  <div id="screen-care" class="screen">
+    <div class="panel">
+      <h2>🏥 Aboard the Ship</h2>
+      <div id="msg-box" id="care-msg">Select a Pichu, then choose an activity!</div>
+      <div id="pichu-list"></div>
+    </div>
+    <div class="panel">
+      <h2>🎯 Activities</h2>
+      <div class="activity-grid" id="activity-grid"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-end-cruise">🏁 End Cruise & Dock</button>
+  </div>
+
+  <!-- ============ UPGRADE SCREEN ============ -->
+  <div id="screen-upgrade" class="screen">
+    <div class="panel">
+      <h2>🔧 Ship Upgrades</h2>
+      <p style="font-size:0.85em; color:#666; margin-bottom:10px;">Spend your ⭐ stars to add new features to the ship!</p>
+      <div class="upgrade-grid" id="upgrade-grid"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-next-cruise" style="margin-top:4px">⛵ Start Next Cruise!</button>
+  </div>
+
+  <!-- ============ SUMMARY SCREEN ============ -->
+  <div id="screen-summary" class="screen">
+    <div class="panel" style="text-align:center">
+      <h2>🎉 Cruise Complete!</h2>
+      <div id="summary-pichus"></div>
+      <div id="summary-text" style="font-size:0.9em; color:#555; margin-top:8px;"></div>
+    </div>
+    <button class="btn btn-gold" id="btn-go-upgrade">🔧 Visit Upgrade Shop</button>
+  </div>
+</div>
+
+<script>
+// ===== GAME STATE =====
+const state = {
+  stars: 5,
+  cruiseNum: 1,
+  totalRescued: 0,
+  pichus: [],   // pichus currently on ship
+  selectedPichu: null,
+  upgrades: {},  // owned upgrades
+  sailStep: 0,
+  stops: [],
+  cruiseLog: [],
+};
+
+// ===== DATA =====
+const PICHU_NAMES = ['Sparky','Zappy','Pip','Bolt','Blinky','Zuri','Pika','Dotti','Frizz','Noodle','Mochi','Ziggy'];
+const PICHU_MOODS = ['😢','😟','😐','🙂','😄','🥰'];
+
+const UPGRADES_DEF = [
+  { id: 'clinic', name: 'Ship Clinic', icon: '🏥', desc: 'Heal Pichus twice as fast', cost: 4, unlocks: [] },
+  { id: 'theater', name: 'Mini Theater', icon: '🎭', desc: 'Unlocks Entertainment Room', cost: 3, unlocks: ['entertain2'] },
+  { id: 'gym', name: 'Gym Room', icon: '🏋️', desc: 'Unlocks Gym activity', cost: 3, unlocks: ['gym'] },
+  { id: 'cafe', name: 'Pichu Café', icon: '☕', desc: 'Unlocks Yummy Feed activity', cost: 3, unlocks: ['feed'] },
+  { id: 'pool', name: 'Splash Pool', icon: '🏊', desc: 'Unlocks Swimming activity', cost: 5, unlocks: ['swim'] },
+  { id: 'spa', name: 'Cozy Spa', icon: '🧖', desc: 'Unlocks Spa activity', cost: 6, unlocks: ['spa'] },
+];
+
+const ACTIVITIES_DEF = [
+  { id: 'heal', name: 'First Aid', icon: '💊', cost: 0, locked_by: null,
+    effect: (p) => { p.hp = Math.min(100, p.hp + (state.upgrades.clinic ? 30 : 15)); },
+    desc: '+HP', color: 'heal', statKey: 'hp' },
+  { id: 'entertain', name: 'Cheer Up', icon: '🎵', cost: 0, locked_by: null,
+    effect: (p) => { p.happy = Math.min(100, p.happy + 20); },
+    desc: '+Happy', color: 'entertain', statKey: 'happy' },
+  { id: 'gym', name: 'Gym Time', icon: '🏋️', cost: 0, locked_by: 'gym',
+    effect: (p) => { p.strength = Math.min(100, p.strength + 25); p.happy = Math.min(100, p.happy + 5); },
+    desc: '+Strength', color: 'gym', statKey: 'strength' },
+  { id: 'feed', name: 'Yummy Meal', icon: '🍱', cost: 0, locked_by: 'cafe',
+    effect: (p) => { p.hp = Math.min(100, p.hp + 10); p.happy = Math.min(100, p.happy + 15); },
+    desc: '+HP +Happy', color: 'feed', statKey: 'hp' },
+  { id: 'swim', name: 'Pool Swim', icon: '🏊', cost: 0, locked_by: 'pool',
+    effect: (p) => { p.happy = Math.min(100, p.happy + 25); p.strength = Math.min(100, p.strength + 10); },
+    desc: '+Happy +Str', color: 'swim', statKey: 'happy' },
+  { id: 'spa', name: 'Spa Time', icon: '🧖', cost: 0, locked_by: 'spa',
+    effect: (p) => { p.hp = Math.min(100, p.hp + 20); p.happy = Math.min(100, p.happy + 20); },
+    desc: '+HP +Happy', color: 'spa', statKey: 'hp' },
+];
+
+// ===== HELPERS =====
+function randomInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+function pick(arr) { return arr[randomInt(0, arr.length - 1)]; }
+
+function makePichu() {
+  const usedNames = state.pichus.map(p => p.name);
+  const available = PICHU_NAMES.filter(n => !usedNames.includes(n));
+  const name = pick(available.length ? available : PICHU_NAMES);
+  return {
+    id: Math.random().toString(36).slice(2),
+    name,
+    hp: randomInt(20, 50),
+    happy: randomInt(10, 40),
+    strength: randomInt(5, 25),
+    emoji: '⚡',
+  };
+}
+
+function getPichuMood(p) {
+  const avg = (p.hp + p.happy + p.strength) / 3;
+  if (avg < 20) return PICHU_MOODS[0];
+  if (avg < 35) return PICHU_MOODS[1];
+  if (avg < 50) return PICHU_MOODS[2];
+  if (avg < 65) return PICHU_MOODS[3];
+  if (avg < 80) return PICHU_MOODS[4];
+  return PICHU_MOODS[5];
+}
+
+// ===== TOAST =====
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function floatText(txt, color, x, y) {
+  const el = document.createElement('div');
+  el.className = 'float-up';
+  el.textContent = txt;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  el.style.color = color;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+
+// ===== SCREENS =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function updateHeader() {
+  document.getElementById('stat-stars').textContent = state.stars;
+  document.getElementById('stat-rescued').textContent = state.totalRescued;
+  document.getElementById('stat-cruise').textContent = state.cruiseNum;
+}
+
+// ===== CRUISE LOGIC =====
+const STOP_POSITIONS = [8, 22, 38, 55, 72, 88]; // % from left
+
+function buildRoute() {
+  const stopCount = Math.min(3 + Math.floor(state.cruiseNum / 2), 6);
+  state.stops = [];
+  for (let i = 0; i < stopCount; i++) {
+    state.stops.push({
+      pos: STOP_POSITIONS[i],
+      hasPichu: Math.random() < 0.7,
+      visited: false,
+      pichu: null,
+    });
+  }
+}
+
+function renderRoute() {
+  const track = document.getElementById('route-track');
+  // remove old stops
+  track.querySelectorAll('.route-stop').forEach(e => e.remove());
+  state.stops.forEach((stop, i) => {
+    const el = document.createElement('div');
+    el.className = 'route-stop';
+    el.style.left = stop.pos + '%';
+    if (stop.visited) {
+      el.innerHTML = stop.hasPichu
+        ? `<span>✅</span><span class="stop-label">${stop.pichu?.name || ''}</span>`
+        : `<span>🌊</span><span class="stop-label">Empty</span>`;
+    } else {
+      el.innerHTML = `<span>❓</span><span class="stop-label">Stop ${i+1}</span>`;
+    }
+    track.appendChild(el);
+  });
+}
+
+let sailInterval = null;
+
+function startSail() {
+  if (sailInterval) return;
+  state.sailStep = 0;
+  state.cruiseLog = [];
+  buildRoute();
+  renderRoute();
+  document.getElementById('btn-sail').textContent = '⏳ Sailing...';
+  document.getElementById('btn-sail').disabled = true;
+  setMsg('cruise', '⛵ Heading out on the rescue route!');
+
+  const ship = document.getElementById('ship-container');
+  ship.style.left = '2%';
+
+  sailInterval = setInterval(() => {
+    if (state.sailStep >= state.stops.length) {
+      clearInterval(sailInterval);
+      sailInterval = null;
+      finishCruise();
+      return;
+    }
+    const stop = state.stops[state.sailStep];
+    ship.style.left = (stop.pos - 3) + '%';
+    stop.visited = true;
+
+    if (stop.hasPichu) {
+      const p = makePichu();
+      stop.pichu = p;
+      state.pichus.push(p);
+      state.totalRescued++;
+      state.cruiseLog.push(`🆘 Found <strong>${p.name}</strong> near stop ${state.sailStep + 1}!`);
+      // earn stars per rescue
+      state.stars += 1;
+      stop.hasPichu = true;
+    } else {
+      state.cruiseLog.push(`🌊 Stop ${state.sailStep + 1} — calm waters, no Pichu here.`);
+    }
+    renderRoute();
+    renderLog();
+    updateHeader();
+    state.sailStep++;
+  }, 1200);
+}
+
+function renderLog() {
+  const el = document.getElementById('rescue-log');
+  el.innerHTML = state.cruiseLog.map(l => `<div>${l}</div>`).join('') || 'No Pichus found yet.';
+}
+
+function finishCruise() {
+  const found = state.pichus.length;
+  document.getElementById('btn-sail').textContent = '⛵ Set Sail!';
+  document.getElementById('btn-sail').disabled = false;
+  if (found === 0) {
+    setMsg('cruise', '😮 No Pichus found this time. Try again!');
+    return;
+  }
+  // go to summary
+  const sumPichus = document.getElementById('summary-pichus');
+  sumPichus.innerHTML = state.pichus.map(p => `<span title="${p.name}">⚡</span>`).join('');
+  document.getElementById('summary-text').innerHTML =
+    `You rescued <strong>${found} Pichu${found > 1 ? 's' : ''}!</strong> Now let's take care of them aboard the ship. 🚢`;
+  showScreen('summary');
+  updateHeader();
+}
+
+// ===== CARE SCREEN =====
+function renderCareScreen() {
+  renderPichuList();
+  renderActivities();
+  setMsg('care', state.pichus.length ? 'Choose a Pichu and help them out! 💛' : 'No Pichus aboard yet.');
+}
+
+function renderPichuList() {
+  const list = document.getElementById('pichu-list');
+  list.innerHTML = '';
+  if (state.pichus.length === 0) {
+    list.innerHTML = '<div style="color:#aaa; font-style:italic; font-size:0.85em;">No Pichus aboard yet</div>';
+    return;
+  }
+  state.pichus.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'pichu-card' + (state.selectedPichu?.id === p.id ? ' selected' : '');
+    card.innerHTML = `
+      <div class="pichu-emoji">${getPichuMood(p)}</div>
+      <div class="pichu-name">${p.name}</div>
+      <div class="stat-bar"><div class="stat-bar-fill hp-bar" style="width:${p.hp}%"></div></div>
+      <div class="stat-bar"><div class="stat-bar-fill happy-bar" style="width:${p.happy}%"></div></div>
+      <div class="stat-bar"><div class="stat-bar-fill strong-bar" style="width:${p.strength}%"></div></div>
+      <div class="pichu-hp" style="margin-top:3px">❤️${p.hp} 😊${p.happy} 💪${p.strength}</div>
+    `;
+    card.onclick = () => {
+      state.selectedPichu = p;
+      renderPichuList();
+      setMsg('care', `Selected ${p.name}! Now pick an activity. ${getPichuMood(p)}`);
+    };
+    list.appendChild(card);
+  });
+}
+
+function renderActivities() {
+  const grid = document.getElementById('activity-grid');
+  grid.innerHTML = '';
+  ACTIVITIES_DEF.forEach(act => {
+    const unlocked = !act.locked_by || state.upgrades[act.locked_by];
+    const btn = document.createElement('button');
+    btn.className = `act-btn ${act.color}${unlocked ? '' : ' locked'}`;
+    btn.innerHTML = `
+      <span class="act-icon">${act.icon}</span>
+      <span class="act-name">${act.name}</span>
+      <span class="act-cost">${act.desc}</span>
+      ${unlocked ? '' : '<span class="lock-badge">🔒</span>'}
+    `;
+    if (unlocked) {
+      btn.onclick = (e) => doActivity(act, e);
+    }
+    grid.appendChild(btn);
+  });
+}
+
+function doActivity(act, e) {
+  if (!state.selectedPichu) {
+    showToast('Pick a Pichu first! 👆');
+    return;
+  }
+  const p = state.selectedPichu;
+  const before = { hp: p.hp, happy: p.happy, strength: p.strength };
+  act.effect(p);
+  const stat = act.statKey;
+  const gain = p[stat] - before[stat];
+
+  const msgs = {
+    heal: [`${p.name} took their medicine! 💊`, `${p.name} is feeling better! 💉`],
+    entertain: [`${p.name} loved the music! 🎵`, `${p.name} is dancing! 🎉`],
+    gym: [`${p.name} lifted tiny weights! 🏋️`, `${p.name} is getting stronger! 💪`],
+    feed: [`${p.name} enjoyed the meal! 🍱`, `Yum yum! ${p.name} is happy! 🍜`],
+    swim: [`${p.name} splashed around! 🏊`, `${p.name} loves the pool! 🌊`],
+    spa: [`${p.name} is so relaxed! 🧖`, `Ahh... ${p.name} feels wonderful! ✨`],
+  };
+  setMsg('care', pick(msgs[act.id] || [`${p.name} did ${act.name}!`]));
+
+  if (gain > 0) {
+    const rect = e.target.closest('.act-btn').getBoundingClientRect();
+    floatText(`+${gain} ${stat === 'hp' ? '❤️' : stat === 'happy' ? '😊' : '💪'}`,
+      stat === 'hp' ? '#ff6b6b' : stat === 'happy' ? '#ffb347' : '#56c66b',
+      rect.left + rect.width / 2, rect.top);
+  }
+
+  // earn a star for care
+  state.stars += 1;
+  updateHeader();
+  renderPichuList();
+}
+
+// ===== UPGRADE SCREEN =====
+function renderUpgradeScreen() {
+  const grid = document.getElementById('upgrade-grid');
+  grid.innerHTML = '';
+  UPGRADES_DEF.forEach(upg => {
+    const owned = !!state.upgrades[upg.id];
+    const canAfford = state.stars >= upg.cost;
+    const card = document.createElement('div');
+    card.className = `upgrade-card${owned ? ' owned' : canAfford ? '' : ' cant-afford'}`;
+    card.innerHTML = `
+      <div class="upg-icon">${upg.icon}</div>
+      <div class="upg-name">${upg.name}</div>
+      <div class="upg-desc">${upg.desc}</div>
+      <div class="upg-cost">${owned ? '✅ Owned' : `⭐ ${upg.cost} stars`}</div>
+    `;
+    if (!owned && canAfford) {
+      card.onclick = () => buyUpgrade(upg);
+    }
+    grid.appendChild(card);
+  });
+}
+
+function buyUpgrade(upg) {
+  if (state.stars < upg.cost) { showToast('Not enough stars! ⭐'); return; }
+  state.stars -= upg.cost;
+  state.upgrades[upg.id] = true;
+  upg.unlocks.forEach(u => { state.upgrades[u] = true; });
+  showToast(`✅ ${upg.name} added to your ship!`);
+  updateHeader();
+  renderUpgradeScreen();
+}
+
+// ===== MSG BOX =====
+function setMsg(screen, txt) {
+  const el = document.querySelector(`#screen-${screen} #msg-box`) ||
+             document.querySelectorAll('#msg-box')[screen === 'cruise' ? 0 : 1];
+  if (el) el.innerHTML = txt;
+}
+
+// ===== CLOUDS =====
+function makeClouds() {
+  const bg = document.getElementById('bg');
+  for (let i = 0; i < 5; i++) {
+    const c = document.createElement('div');
+    c.className = 'cloud';
+    const w = randomInt(80, 180);
+    const h = w * 0.45;
+    c.style.cssText = `width:${w}px; height:${h}px; top:${randomInt(3, 35)}%; animation-duration:${randomInt(25, 55)}s; animation-delay:-${randomInt(0,30)}s;`;
+    c.style.setProperty('--w', w + 'px');
+    // bumps
+    const b1 = document.createElement('div');
+    b1.style.cssText = `width:${w*0.55}px; height:${h*1.3}px; top:-${h*0.45}px; left:${w*0.2}px;`;
+    const b2 = document.createElement('div');
+    b2.style.cssText = `width:${w*0.35}px; height:${h*1.0}px; top:-${h*0.25}px; left:${w*0.55}px;`;
+    c.appendChild(b1); c.appendChild(b2);
+    bg.appendChild(c);
+  }
+}
+
+// ===== BUTTON WIRING =====
+document.getElementById('btn-sail').onclick = () => startSail();
+
+document.getElementById('btn-end-cruise').onclick = () => {
+  // award bonus stars for well-cared pichus
+  let bonus = 0;
+  state.pichus.forEach(p => {
+    const avg = (p.hp + p.happy + p.strength) / 3;
+    if (avg >= 70) bonus += 3;
+    else if (avg >= 50) bonus += 1;
+  });
+  state.stars += bonus;
+  if (bonus > 0) showToast(`⭐ +${bonus} bonus stars for great care!`);
+  updateHeader();
+  state.cruiseNum++;
+  state.pichus = []; // pichus graduate!
+  state.selectedPichu = null;
+  showScreen('upgrade');
+  renderUpgradeScreen();
+  updateHeader();
+};
+
+document.getElementById('btn-go-upgrade').onclick = () => {
+  showScreen('care');
+  renderCareScreen();
+};
+
+document.getElementById('btn-next-cruise').onclick = () => {
+  showScreen('cruise');
+  setMsg('cruise', `🌊 Cruise ${state.cruiseNum} — set sail to find more Pichus!`);
+  renderRoute();
+  updateHeader();
+};
+
+// ===== INIT =====
+makeClouds();
+buildRoute();
+renderRoute();
+updateHeader();
+</script>
+</body>
+</html>
