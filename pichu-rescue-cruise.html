@@ -587,19 +587,19 @@ function updateHeader() {
 }
 
 // ===== CRUISE LOGIC =====
-const STOP_POSITIONS = [8, 22, 38, 55, 72, 88]; // % from left
+const STOP_POSITIONS = [5, 15, 25, 35, 45, 55, 65, 75, 85, 95]; // % from left
 
 function buildRoute() {
-  const stopCount = Math.min(3 + Math.floor(state.cruiseNum / 2), 6);
-  state.stops = [];
-  for (let i = 0; i < stopCount; i++) {
-    state.stops.push({
-      pos: STOP_POSITIONS[i],
-      hasPichu: Math.random() < 0.7,
-      visited: false,
-      pichu: null,
-    });
-  }
+  const c = state.cruiseNum;
+  const minP = Math.max(5, Math.floor(c / 2) + 4);   // 5 → grows with cruise
+  const maxP = Math.min(10, Math.floor(c * 0.8) + 6); // 6 → 10
+  const stopCount = minP + Math.floor(Math.random() * (maxP - minP + 1));
+  state.stops = STOP_POSITIONS.slice(0, stopCount).map(pos => ({
+    pos,
+    hasPichu: true,
+    visited: false,
+    pichu: null,
+  }));
 }
 
 function renderRoute() {
