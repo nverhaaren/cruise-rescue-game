@@ -404,6 +404,27 @@
     min-height: 36px;
     font-weight: 600;
   }
+
+  /* SAVE BUTTONS */
+  .save-btns {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .save-btn {
+    background: rgba(255,255,255,0.75);
+    border: 2px solid var(--ocean-light);
+    border-radius: 10px;
+    padding: 4px 8px;
+    font-size: 1em;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.15s;
+    color: var(--ocean-dark);
+    font-weight: 700;
+  }
+  .save-btn:hover { background: white; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,80,120,0.2); }
+  .save-btn:active { transform: scale(0.95); }
 </style>
 </head>
 <body>
@@ -417,10 +438,16 @@
 <div id="game">
   <div id="header">
     <h1>⚡ Pichu<br><span>Rescue</span> Cruise</h1>
-    <div class="stat-pills">
-      <div class="pill gold">⭐ <span id="stat-stars">0</span></div>
-      <div class="pill green">💛 <span id="stat-rescued">0</span> rescued</div>
-      <div class="pill">🚢 Cruise <span id="stat-cruise">1</span></div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+      <div class="stat-pills">
+        <div class="pill gold">⭐ <span id="stat-stars">0</span></div>
+        <div class="pill green">💛 <span id="stat-rescued">0</span> rescued</div>
+        <div class="pill">🚢 Cruise <span id="stat-cruise">1</span></div>
+      </div>
+      <div class="save-btns">
+        <button class="save-btn" onclick="exportSave()" title="Export save file">💾 Export</button>
+        <button class="save-btn" onclick="importSave()" title="Import save file">📂 Import</button>
+      </div>
     </div>
   </div>
 
@@ -478,6 +505,81 @@
 </div>
 
 <script>
+// ===== SAVE / LOAD =====
+const SAVE_KEY = 'pichu-rescue-cruise-save';
+const SAVE_VERSION = 1;
+
+function getSaveData() {
+  return {
+    version: SAVE_VERSION,
+    savedAt: new Date().toISOString(),
+    stars: state.stars,
+    cruiseNum: state.cruiseNum,
+    totalRescued: state.totalRescued,
+    pichus: state.pichus,
+    upgrades: state.upgrades,
+  };
+}
+
+function autoSave() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(getSaveData())); } catch(e) {}
+}
+
+function applySave(data) {
+  if (!data || data.version !== SAVE_VERSION) return false;
+  state.stars        = data.stars        ?? 5;
+  state.cruiseNum    = data.cruiseNum    ?? 1;
+  state.totalRescued = data.totalRescued ?? 0;
+  state.pichus       = data.pichus       ?? [];
+  state.upgrades     = data.upgrades     ?? {};
+  state.selectedPichu = null;
+  return true;
+}
+
+function initLoad() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    return applySave(JSON.parse(raw));
+  } catch(e) { return false; }
+}
+
+function exportSave() {
+  const data = getSaveData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pichu-rescue-save-v${SAVE_VERSION}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('💾 Save exported!');
+}
+
+function importSave() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!applySave(data)) { showToast('❌ Incompatible save file'); return; }
+        autoSave();
+        updateHeader();
+        if (state.pichus.length > 0) { showScreen('care'); renderCareScreen(); }
+        else { showScreen('cruise'); renderRoute(); }
+        showToast('✅ Save imported!');
+      } catch(e) { showToast('❌ Could not read save file'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
 // ===== GAME STATE =====
 const state = {
   stars: 5,
@@ -659,6 +761,7 @@ function startSail() {
     } else {
       state.cruiseLog.push(`🌊 Stop ${state.sailStep + 1} — calm waters, no Pichu here.`);
     }
+    autoSave();
     renderRoute();
     renderLog();
     updateHeader();
@@ -772,6 +875,7 @@ function doActivity(act, e) {
 
   // earn a star for care
   state.stars += 1;
+  autoSave();
   updateHeader();
   renderPichuList();
 }
@@ -803,6 +907,7 @@ function buyUpgrade(upg) {
   state.stars -= upg.cost;
   state.upgrades[upg.id] = true;
   upg.unlocks.forEach(u => { state.upgrades[u] = true; });
+  autoSave();
   showToast(`✅ ${upg.name} added to your ship!`);
   updateHeader();
   renderUpgradeScreen();
@@ -848,10 +953,11 @@ document.getElementById('btn-end-cruise').onclick = () => {
   });
   state.stars += bonus;
   if (bonus > 0) showToast(`⭐ +${bonus} bonus stars for great care!`);
-  updateHeader();
   state.cruiseNum++;
   state.pichus = []; // pichus graduate!
   state.selectedPichu = null;
+  autoSave();
+  updateHeader();
   showScreen('upgrade');
   renderUpgradeScreen();
   updateHeader();
@@ -871,9 +977,17 @@ document.getElementById('btn-next-cruise').onclick = () => {
 
 // ===== INIT =====
 makeClouds();
+const hasSave = initLoad();
 buildRoute();
 renderRoute();
 updateHeader();
+if (hasSave) {
+  if (state.pichus.length > 0) {
+    showScreen('care');
+    renderCareScreen();
+  }
+  // else stay on cruise screen (default)
+}
 </script>
 </body>
 </html>
