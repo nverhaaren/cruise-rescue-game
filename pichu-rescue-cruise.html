@@ -346,10 +346,11 @@
     font-size: 1em;
     z-index: 100;
     pointer-events: none;
-    transition: transform 0.3s ease;
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
     white-space: nowrap;
   }
-  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
   /* SPLASH / FLOAT EFFECT */
   .float-up {
@@ -500,7 +501,7 @@
       <div id="summary-pichus"></div>
       <div id="summary-text" style="font-size:0.9em; color:#555; margin-top:8px;"></div>
     </div>
-    <button class="btn btn-gold" id="btn-go-upgrade">🔧 Visit Upgrade Shop</button>
+    <button class="btn btn-gold" id="btn-go-upgrade">💛 Care for Your Pichus!</button>
   </div>
 </div>
 
@@ -969,9 +970,12 @@ document.getElementById('btn-go-upgrade').onclick = () => {
 };
 
 document.getElementById('btn-next-cruise').onclick = () => {
+  state.cruiseLog = [];
   showScreen('cruise');
   setMsg('cruise', `🌊 Cruise ${state.cruiseNum} — set sail to find more Pichus!`);
+  buildRoute();
   renderRoute();
+  renderLog();
   updateHeader();
 };
 
